@@ -135,4 +135,77 @@ spec:
 
 
 
+**Задание 2. Создать Deployment и обеспечить старт основного контейнера при выполнении условий**
+
+1. Создать Deployment приложения nginx и обеспечить старт контейнера только после того, как будет запущен сервис этого приложения.
+
+2. Убедиться, что nginx не стартует. В качестве Init-контейнера взять busybox.
+
+3. Создать и запустить Service. Убедиться, что Init запустился.
+
+4. Продемонстрировать состояние пода до и после запуска сервиса.
+
+
+
+**Решение 2**
+
+
+Создадим deployment-init.yaml 
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-app
+  name: nginx-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+      initContainers:
+      - name: init-nginx-svc
+        image: busybox
+        command: ['sh', '-c', 'until nslookup nginx-svc.default.svc.cluster.local; do echo waiting for nginx-svc; sleep 5; done;']
+
+```
+
+Убедимся что nginx не стартует 
+
+![Image alt](https://github.com/mezhibo/kubernetes3/blob/0decf37313e90e320521a999786d218442f9f559/IMG/10.jpg)
+
+Создадим Service nginx-svc.yaml и убедимся что init запустился
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  selector:
+    app: nginx
+  ports:
+  - name: http-port
+    port: 80
+    protocol: TCP
+    targetPort: 80
+```
+
+Запускаем сервис, и сравниваем состояние пода до запуска сервиса и после
+
+![Image alt](https://github.com/mezhibo/kubernetes3/blob/0decf37313e90e320521a999786d218442f9f559/IMG/11.jpg)
+
+
 
